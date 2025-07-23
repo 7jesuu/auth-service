@@ -1,0 +1,80 @@
+.root {
+  min-height: 100vh;
+  min-width: 100vw;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  background: linear-gradient(135deg, #2a5298 0%, #1e3c72 100%);
+  padding-top: 3vh;
+}
+
+.card {
+  width: 100%;
+  max-width: 1100px;
+  background: rgba(255, 255, 255, 0.97);
+  border-radius: 2rem;
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+  padding: 2.5rem 2rem;
+  margin: 0 1rem 2rem 1rem;
+  animation: fadeIn 0.8s;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.filters {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.5rem;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 1.5rem;
+}
+
+.table th,
+.table td {
+  padding: 0.7rem 1rem;
+  text-align: left;
+}
+
+.table th {
+  background: #e3eafc;
+  color: #1e3c72;
+  font-weight: 700;
+}
+
+.table tr:nth-child(even) {
+  background: #f6f8fc;
+}
+
+.actionBtn {
+  margin-right: 0.5rem;
+  border-radius: 0.7rem;
+  font-weight: 600;
+  min-width: 90px;
+}
+
+.tabs {
+  margin-bottom: 2rem;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

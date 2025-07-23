@@ -1,0 +1,122 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend-deployment
+  namespace: auth-service
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+        - name: backend
+          image: auth-backend:latest
+          imagePullPolicy: Never # Для локальной разработки
+          ports:
+            - containerPort: 3000
+          env:
+            - name: NODE_ENV
+              valueFrom:
+                configMapKeyRef:
+                  name: auth-service-config
+                  key: NODE_ENV
+            - name: PGHOST
+              valueFrom:
+                configMapKeyRef:
+                  name: auth-service-config
+                  key: PGHOST
+            - name: PGPORT
+              valueFrom:
+                configMapKeyRef:
+                  name: auth-service-config
+                  key: PGPORT
+            - name: PGUSER
+              value: "postgres"
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: auth-service-secret
+                  key: PGPASSWORD
+            - name: PGDATABASE
+              valueFrom:
+                configMapKeyRef:
+                  name: auth-service-config
+                  key: PGDATABASE
+            - name: REDIS_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: auth-service-config
+                  key: REDIS_HOST
+            - name: REDIS_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: auth-service-config
+                  key: REDIS_PORT
+            - name: SESSION_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: auth-service-secret
+                  key: SESSION_SECRET
+            - name: EMAIL_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: auth-service-config
+                  key: EMAIL_HOST
+            - name: EMAIL_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: auth-service-config
+                  key: EMAIL_PORT
+            - name: EMAIL_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: auth-service-config
+                  key: EMAIL_USER
+            - name: EMAIL_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: auth-service-secret
+                  key: EMAIL_PASS
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+      volumes:
+        - name: backend-volume
+          hostPath:
+            path: /usr/src/app
+      restartPolicy: Always
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-service
+  namespace: auth-service
+spec:
+  selector:
+    app: backend
+  ports:
+    - protocol: TCP
+      port: 3000
+      targetPort: 3000
+  type: ClusterIP
