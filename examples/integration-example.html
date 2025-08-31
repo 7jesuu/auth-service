@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Auth Service Integration Example</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+        background-color: #f5f5f5;
+      }
+      .container {
+        background: white;
+        padding: 30px;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      }
+      .form-group {
+        margin-bottom: 15px;
+      }
+      label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: bold;
+      }
+      input {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        font-size: 16px;
+      }
+      button {
+        background: #007bff;
+        color: white;
+        padding: 12px 20px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 16px;
+        margin-right: 10px;
+      }
+      button:hover {
+        background: #0056b3;
+      }
+      button:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+      }
+      .error {
+        color: #dc3545;
+        margin-top: 10px;
+      }
+      .success {
+        color: #28a745;
+        margin-top: 10px;
+      }
+      .user-info {
+        background: #e9ecef;
+        padding: 15px;
+        border-radius: 5px;
+        margin-top: 20px;
+      }
+      .hidden {
+        display: none;
+      }
+      .tabs {
+        display: flex;
+        margin-bottom: 20px;
+      }
+      .tab {
+        padding: 10px 20px;
+        cursor: pointer;
+        border: 1px solid #ddd;
+        background: #f8f9fa;
+      }
+      .tab.active {
+        background: #007bff;
+        color: white;
+      }
+      .tab-content {
+        display: none;
+      }
+      .tab-content.active {
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Auth Service Integration Example</h1>
+
+      <div class="tabs">
+        <div class="tab active" onclick="switchTab('jwt')">
+          JWT Authentication
+        </div>
+        <div class="tab" onclick="switchTab('session')">
+          Session Authentication
+        </div>
+      </div>
+
+      <!-- JWT Authentication Tab -->
+      <div id="jwt-tab" class="tab-content active">
+        <div id="jwt-login-form">
+          <h2>JWT Login</h2>
+          <div class="form-group">
+            <label for="jwt-email">Email:</label>
+            <input type="email" id="jwt-email" placeholder="Enter your email" />
+          </div>
+          <div class="form-group">
+            <label for="jwt-password">Password:</label>
+            <input
+              type="password"
+              id="jwt-password"
+              placeholder="Enter your password"
+            />
+          </div>
+          <button onclick="jwtLogin()">Login</button>
+          <button onclick="showJwtRegister()">Register</button>
+          <div id="jwt-login-message"></div>
+        </div>
+
+        <div id="jwt-register-form" class="hidden">
+          <h2>JWT Register</h2>
+          <div class="form-group">
+            <label for="jwt-reg-email">Email:</label>
+            <input
+              type="email"
+              id="jwt-reg-email"
+              placeholder="Enter your email"
+            />
+          </div>
+          <div class="form-group">
+            <label for="jwt-reg-password">Password:</label>
+            <input
+              type="password"
+              id="jwt-reg-password"
+              placeholder="Enter your password"
+            />
+          </div>
+          <div class="form-group">
+            <label for="jwt-reg-role">Role:</label>
+            <select id="jwt-reg-role">
+              <option value="user">User</option>
+              <option value="admin">Admin</option>
+            </select>
+          </div>
+          <button onclick="jwtRegister()">Register</button>
+          <button onclick="showJwtLogin()">Back to Login</button>
+          <div id="jwt-register-message"></div>
+        </div>
+
+        <div id="jwt-user-panel" class="hidden">
+          <h2>User Panel (JWT)</h2>
+          <div id="jwt-user-info" class="user-info"></div>
+          <button onclick="jwtGetProfile()">Get Profile</button>
+          <button onclick="jwtValidateToken()">Validate Token</button>
+          <button onclick="jwtLogout()">Logout</button>
+          <div id="jwt-user-message"></div>
+        </div>
+      </div>
+
+      <!-- Session Authentication Tab -->
+      <div id="session-tab" class="tab-content">
+        <div id="session-login-form">
+          <h2>Session Login</h2>
+          <div class="form-group">
+            <label for="session-email">Email:</label>
+            <input
+              type="email"
+              id="session-email"
+              placeholder="Enter your email"
+            />
+          </div>
+          <div class="form-group">
+            <label for="session-password">Password:</label>
+            <input
+              type="password"
+              id="session-password"
+              placeholder="Enter your password"
+            />
+          </div>
+          <button onclick="sessionLogin()">Login</button>
+          <div id="session-login-message"></div>
+        </div>
+
+        <div id="session-user-panel" class="hidden">
+          <h2>User Panel (Session)</h2>
+          <div id="session-user-info" class="user-info"></div>
+          <button onclick="sessionLogout()">Logout</button>
+          <div id="session-user-message"></div>
+        </div>
+      </div>
+    </div>
+
+    <script src="../sdk/auth-sdk.js"></script>
+    <script>
+      // Инициализация SDK
+      const auth = new AuthSDK({
+        baseURL: "http://localhost:3000",
+        storage: "localStorage",
+      });
+
+      // Проверяем статус аутентификации при загрузке
+      window.onload = function () {
+        checkAuthStatus();
+      };
+
+      function checkAuthStatus() {
+        if (auth.isAuthenticated()) {
+          showJwtUserPanel();
+        }
+      }
+
+      function switchTab(tabName) {
+        // Скрываем все табы
+        document
+          .querySelectorAll(".tab")
+          .forEach((tab) => tab.classList.remove("active"));
+        document
+          .querySelectorAll(".tab-content")
+          .forEach((content) => content.classList.remove("active"));
+
+        // Показываем выбранный таб
+        if (tabName === "jwt") {
+          document.querySelector(".tab:nth-child(1)").classList.add("active");
+          document.getElementById("jwt-tab").classList.add("active");
+        } else {
+          document.querySelector(".tab:nth-child(2)").classList.add("active");
+          document.getElementById("session-tab").classList.add("active");
+        }
+      }
+
+      function showJwtLogin() {
+        document.getElementById("jwt-login-form").classList.remove("hidden");
+        document.getElementById("jwt-register-form").classList.add("hidden");
+        document.getElementById("jwt-user-panel").classList.add("hidden");
+      }
+
+      function showJwtRegister() {
+        document.getElementById("jwt-login-form").classList.add("hidden");
+        document.getElementById("jwt-register-form").classList.remove("hidden");
+        document.getElementById("jwt-user-panel").classList.add("hidden");
+      }
+
+      function showJwtUserPanel() {
+        document.getElementById("jwt-login-form").classList.add("hidden");
+        document.getElementById("jwt-register-form").classList.add("hidden");
+        document.getElementById("jwt-user-panel").classList.remove("hidden");
+        updateJwtUserInfo();
+      }
+
+      function updateJwtUserInfo() {
+        const user = auth.getCurrentUser();
+        const tokens = auth.getTokens();
+
+        document.getElementById("jwt-user-info").innerHTML = `
+                <h3>Current User:</h3>
+                <p><strong>ID:</strong> ${user.id}</p>
+                <p><strong>Email:</strong> ${user.email}</p>
+                <p><strong>Role:</strong> ${user.role}</p>
+                <p><strong>Active:</strong> ${user.is_active ? "Yes" : "No"}</p>
+                <p><strong>Email Confirmed:</strong> ${
+                  user.is_email_confirmed ? "Yes" : "No"
+                }</p>
+                <p><strong>Access Token:</strong> ${tokens.accessToken.substring(
+                  0,
+                  20
+                )}...</p>
+                <p><strong>Refresh Token:</strong> ${tokens.refreshToken.substring(
+                  0,
+                  20
+                )}...</p>
+            `;
+      }
+
+      async function jwtLogin() {
+        const email = document.getElementById("jwt-email").value;
+        const password = document.getElementById("jwt-password").value;
+        const messageDiv = document.getElementById("jwt-login-message");
+
+        if (!email || !password) {
+          messageDiv.innerHTML =
+            '<div class="error">Please enter email and password</div>';
+          return;
+        }
+
+        try {
+          const result = await auth.login(email, password);
+          messageDiv.innerHTML = '<div class="success">Login successful!</div>';
+          showJwtUserPanel();
+        } catch (error) {
+          messageDiv.innerHTML = `<div class="error">Login failed: ${error.message}</div>`;
+        }
+      }
+
+      async function jwtRegister() {
+        const email = document.getElementById("jwt-reg-email").value;
+        const password = document.getElementById("jwt-reg-password").value;
+        const role = document.getElementById("jwt-reg-role").value;
+        const messageDiv = document.getElementById("jwt-register-message");
+
+        if (!email || !password) {
+          messageDiv.innerHTML =
+            '<div class="error">Please enter email and password</div>';
+          return;
+        }
+
+        if (password.length < 6) {
+          messageDiv.innerHTML =
+            '<div class="error">Password must be at least 6 characters</div>';
+          return;
+        }
+
+        try {
+          const result = await auth.register(email, password, role);
+          messageDiv.innerHTML =
+            '<div class="success">Registration successful! You can now login.</div>';
+          setTimeout(() => {
+            showJwtLogin();
+            document.getElementById("jwt-email").value = email;
+          }, 2000);
+        } catch (error) {
+          messageDiv.innerHTML = `<div class="error">Registration failed: ${error.message}</div>`;
+        }
+      }
+
+      async function jwtGetProfile() {
+        const messageDiv = document.getElementById("jwt-user-message");
+
+        try {
+          const profile = await auth.getProfile();
+          messageDiv.innerHTML =
+            '<div class="success">Profile updated successfully!</div>';
+          updateJwtUserInfo();
+        } catch (error) {
+          messageDiv.innerHTML = `<div class="error">Failed to get profile: ${error.message}</div>`;
+        }
+      }
+
+      async function jwtValidateToken() {
+        const messageDiv = document.getElementById("jwt-user-message");
+
+        try {
+          const isValid = await auth.validateToken();
+          if (isValid) {
+            messageDiv.innerHTML = '<div class="success">Token is valid!</div>';
+          } else {
+            messageDiv.innerHTML = '<div class="error">Token is invalid!</div>';
+          }
+        } catch (error) {
+          messageDiv.innerHTML = `<div class="error">Token validation failed: ${error.message}</div>`;
+        }
+      }
+
+      async function jwtLogout() {
+        try {
+          await auth.logout();
+          showJwtLogin();
+          document.getElementById("jwt-user-message").innerHTML =
+            '<div class="success">Logged out successfully!</div>';
+        } catch (error) {
+          document.getElementById(
+            "jwt-user-message"
+          ).innerHTML = `<div class="error">Logout failed: ${error.message}</div>`;
+        }
+      }
+
+      async function sessionLogin() {
+        const email = document.getElementById("session-email").value;
+        const password = document.getElementById("session-password").value;
+        const messageDiv = document.getElementById("session-login-message");
+
+        if (!email || !password) {
+          messageDiv.innerHTML =
+            '<div class="error">Please enter email and password</div>';
+          return;
+        }
+
+        try {
+          const result = await auth.sessionLogin(email, password);
+          messageDiv.innerHTML =
+            '<div class="success">Session login successful!</div>';
+          showSessionUserPanel();
+        } catch (error) {
+          messageDiv.innerHTML = `<div class="error">Session login failed: ${error.message}</div>`;
+        }
+      }
+
+      function showSessionUserPanel() {
+        document.getElementById("session-login-form").classList.add("hidden");
+        document
+          .getElementById("session-user-panel")
+          .classList.remove("hidden");
+        updateSessionUserInfo();
+      }
+
+      function updateSessionUserInfo() {
+        document.getElementById("session-user-info").innerHTML = `
+                <h3>Session User:</h3>
+                <p><strong>ID:</strong> ${user.id}</p>
+                <p><strong>Email:</strong> ${user.email}</p>
+                <p><strong>Role:</strong> ${user.role_name}</p>
+                <p><strong>Active:</strong> ${user.is_active ? "Yes" : "No"}</p>
+                <p><strong>Email Confirmed:</strong> ${
+                  user.is_email_confirmed ? "Yes" : "No"
+                }</p>
+            `;
+      }
+
+      async function sessionLogout() {
+        try {
+          await auth.sessionLogout();
+          document
+            .getElementById("session-login-form")
+            .classList.remove("hidden");
+          document.getElementById("session-user-panel").classList.add("hidden");
+          document.getElementById("session-user-message").innerHTML =
+            '<div class="success">Session logged out successfully!</div>';
+        } catch (error) {
+          document.getElementById(
+            "session-user-message"
+          ).innerHTML = `<div class="error">Session logout failed: ${error.message}</div>`;
+        }
+      }
+    </script>
+  </body>
+</html>

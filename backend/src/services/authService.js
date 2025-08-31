@@ -3,6 +3,7 @@ const bcrypt = require("bcrypt");
 const nodemailer = require("nodemailer");
 const crypto = require("crypto");
 const logService = require("./logService");
+const JWTService = require("./jwtService");
 
 const SALT_ROUNDS = 10;
 const CODE_LENGTH = 6;
@@ -110,7 +111,7 @@ function makeUserProfile(user, roleName) {
   };
 }
 
-async function loginUser(email, password, req) {
+async function loginUser(email, password, req = null) {
   // Найти пользователя
   const userRes = await pool.query("SELECT * FROM users WHERE email = $1", [
     email,
@@ -134,30 +135,19 @@ async function loginUser(email, password, req) {
   const valid = await bcrypt.compare(password, user.password_hash);
   if (!valid) throw new Error("Invalid password");
 
-  // // Сгенерировать 2FA-код
-  // const code = crypto
-  //   .randomInt(10 ** (CODE_LENGTH - 1), 10 ** CODE_LENGTH)
-  //   .toString();
-  // const expiresAt = new Date(Date.now() + CODE_EXPIRATION_MINUTES * 60000);
-  // await pool.query(
-  //   "INSERT INTO twofa_codes (user_id, code, expires_at) VALUES ($1, $2, $3)",
-  //   [user.id, code, expiresAt]
-  // );
-
-  // // Отправить email
-  // await transporter.sendMail({
-  //   from: process.env.EMAIL_USER,
-  //   to: email,
-  //   subject: "Код для входа",
-  //   text: `Ваш код для входа: ${code}`,
-  // });
-
-  // Сразу создаём сессию
+  // Создать профиль пользователя
   const profile = makeUserProfile(user, role_name);
-  req.session.user = profile;
+
+  // Если передан req (сессионная аутентификация), создаем сессию
+  if (req) {
+    req.session.user = profile;
+  }
+
+  // Генерируем JWT токены
+  const tokens = JWTService.generateTokens(profile);
 
   await logService.logAction(user.id, "login", { email });
-  return profile;
+  return { ...profile, ...tokens };
 }
 
 // async function verify2FACode(email, code, req) {

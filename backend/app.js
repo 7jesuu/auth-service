@@ -80,6 +80,7 @@ app.use(
 app.use(express.json());
 
 app.use("/auth", require("./src/routes/auth"));
+app.use("/auth/jwt", require("./src/routes/jwtAuth"));
 app.use("/user", require("./src/routes/user"));
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
